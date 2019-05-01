@@ -1,8 +1,4 @@
-from thread import *
-from event import *
-
-CURRENT_TIME = 0
-QUANTUM_SIZE = 5
+from event import EventType
 
 
 class Buffer:
@@ -12,8 +8,8 @@ class Buffer:
     """
 
     def __init__(self, capacity):
-        self.capacity = capacity
-        self.buffer_list = []
+        self.capacity = capacity    # Maximum number of threads that buffer can hold
+        self.buffer_list = []       # List of threads currently in buffer
 
     def getNextJob(self, policy):
         """
@@ -24,6 +20,9 @@ class Buffer:
         return policy(self.buffer_list)
 
     def isFull(self):
+        """
+        Returns whether the buffer is full or not
+        """
         return self.capacity == len(self.buffer_list)
 
     def addJob(self, job):
@@ -35,7 +34,7 @@ class Buffer:
         self.buffer_list.append(job)
         return 1
 
-    def __str__(self):
+    def __repr__(self):
         """
         For Debugging Purpose Only
         Prints the state of buffer
@@ -51,59 +50,64 @@ class Core:
     An abstraction of a core of a CPU
     """
 
-    def __init__(self, id, buffer, policy):
-        self.id = id
-        self.buffer = buffer
-        self.policy = policy
-        self.idle = True
-        self.runningThread = None
+    def __init__(self, id, buffer, policy, quantum_size):
+        self.id = id                        # Core ID
+        self.buffer = buffer                # Buffer associated with the core
+        self.policy = policy                # Policy for scheduling jobs
+        self.idle = True                    # Is core idle
+        self.runningThread = None           # Thread (if running) on this core
+        self.quantum_size = quantum_size    # Quantum Size for which to run a job
 
     def isIdle(self):
+        """
+        Returnd whether the core is idle
+        """
         return self.idle
 
-    def departure(self):
+    def departure(self, thread_list, event_list, sim_time, quantum_size):
         """
         The request is completed and should be counted towards goodput
         """
-        THREAD_LIST.removeThread(self.runningThread.thread_id)
+        thread_list.removeThread(self.runningThread.thread_id)
         self.runningThread = None
         next_job = self.buffer.getNextJob(self.policy)
         if next_job == -1:  # Empty Buffer
             self.idle = True
         else:
             self.runningThread = next_job
-            if next_job.request.timeout + next_job.request.timestamp > CURRENT_TIME:
-                self.timeout()
+            if next_job.request.timeout + next_job.request.timestamp > sim_time:
+                self.timeout(thread_list, event_list, sim_time, quantum_size)
             else:
                 next_job.running = True
                 self.runningThread = next_job
-                EVENT_LIST.addEvent(
-                    EventType.end_quantum, CURRENT_TIME+QUANTUM_SIZE, {'core_id': self.id})
+                event_list.addEvent(
+                    EventType.end_quantum, sim_time+quantum_size, {'core_id': self.id})
 
-    def timeout(self):
+    def timeout(self, thread_list, event_list, sim_time, quantum_size):
         """
         The request has timed out and should be counted towards badput
         """
-        THREAD_LIST.removeThread(self.runningThread.thread_id)
+        thread_list.removeThread(self.runningThread.thread_id)
         self.runningThread = None
         next_job = self.buffer.getNextJob(self.policy)
         if next_job == -1:  # Empty Buffer
             self.idle = True
         else:
-            if next_job.request.timeout + next_job.request.timestamp > CURRENT_TIME:
-                self.timeout()
+            if next_job.request.timeout + next_job.request.timestamp > sim_time:
+                self.timeout(thread_list, event_list, sim_time, quantum_size)
             else:
                 next_job.running = True
                 self.runningThread = next_job
-                EVENT_LIST.addEvent(
-                    EventType.end_quantum, CURRENT_TIME+QUANTUM_SIZE, {'core_id': self.id})
+                event_list.addEvent(
+                    EventType.end_quantum, sim_time+quantum_size, {'core_id': self.id})
 
-    def __str__(self):
+    def __repr__(self):
         """
         Debugging Purpose Only
         Prints the state of a core
         """
-        repr = str("Core: " + "ID : " + str(self.id) + "Policy: " + str(self.policy))
+        repr = str("Core: " + "ID : " + str(self.id) +
+                   "Policy: " + str(self.policy) + "Quantum Size: " + str(self.quantum_size))
         repr += str(self.buffer)
         return repr
 
@@ -114,15 +118,18 @@ class CoreHandler:
     """
 
     def __init__(self, cores):
-        self.cores = cores
+        self.cores = cores      # List of cores in the system which it will be handling
 
     def getCore(self):
+        """
+        It returns a core (if available) for a thread
+        """
         for core in self.cores:
             if (core.buffer.isFull() == False):
                 return core     # Found a core
         return -1   # No cores are empty
 
-    def __str__(self):
+    def __repr__(self):
         """
         Debugging Purpose Only
         Prints the state of core handler

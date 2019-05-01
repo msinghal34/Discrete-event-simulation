@@ -1,0 +1,54 @@
+num_cores: 4
+num_threads: 128
+buffer_capacity: 10
+max_request_queue_length: 100
+policy: roundRobin
+quantum_size: 0.5
+num_users: 10
+stopping_criterion: 200
+context_switch_overhead:  0.02
+
+think_time_distribution:
+  name: c+exp
+  params:
+    c: 2.0
+    lambd: 0.5
+
+# think_time_distribution:
+#   name: uniform
+#   params:
+#     a: 1.0
+#     b: 2.0
+
+# think_time_distribution:
+#   name: deterministic
+#   params:
+#     c: 2.0
+
+service_time_distribution:
+  name: exponential
+  params:
+    lambd: 1.0
+
+
+# service_time_distribution:
+#   name: uniform
+#   params:
+#     a: 2.0
+#     b: 3.0
+
+# service_time_distribution:
+#   name: deterministic
+#   params:
+#     c: 3.0
+
+timeout_distribution:
+  name: c+exp
+  params:
+    c: 5.0
+    lambd: 0.5
+
+# timeout_distribution:
+#   name: deterministic
+#   params:
+#     c: 2.0

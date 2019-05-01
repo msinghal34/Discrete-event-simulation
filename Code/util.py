@@ -7,7 +7,8 @@ class PriorityQueue:
     """
 
     def __init__(self):
-        self.heap = heapq.heapify([])
+        self.heap = []
+        heapq.heapify(self.heap)
 
     def __str__(self):
         return ' '.join([str(i) for i in self.heap])
