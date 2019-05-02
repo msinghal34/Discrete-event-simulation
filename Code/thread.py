@@ -10,7 +10,7 @@ class Request:
         self.priority = priority    # Priority of this request
 
     def __repr__(self):
-        return str("Request with id " + str(self.id))
+        return str("Request id " + str(self.id))
 
 class Thread:
     """Abstraction for a Thread """
@@ -53,9 +53,10 @@ class ThreadList:
             del self.available_threads[0]
             thread = Thread(request, thread_id)
             self.list_of_threads_in_use.append(thread)
+            print("Thread_List: Assigned", str(thread), "to", str(request))
             return thread
         else:
-            print("No threads available")
+            print("ThreadList: No threads available for", str(request))
             return -1
 
     def removeThread(self, thread_id):
@@ -65,12 +66,13 @@ class ThreadList:
         """
         for index, thread in enumerate(self.list_of_threads_in_use):
             if thread.id == thread_id:
+                print("Thread_List: Freed", str(self.list_of_threads_in_use[index]))
                 del self.list_of_threads_in_use[index]
                 self.available_threads.append(thread_id)
                 break
 
     def __repr__(self):
-        return str("Thread List with number of threads " + str(self.max_threads))
+        return str("Thread_List num_threads " + str(self.max_threads))
 
 
 class RequestQueue:
@@ -87,9 +89,10 @@ class RequestQueue:
         Add a new request to this queue (if there is space) else drop it
         """
         if (len(self.list_requests) == self.max_queue_length):
-            print("Dropping Request with id : ", request.id)
+            print("Request_Queue: No empty space")
             return -1
         else:
+            print("Request_Queue: Added", str(request), "to queue")
             self.list_requests.append(request)
 
     def removeFromQueue(self):
@@ -100,6 +103,7 @@ class RequestQueue:
             return -1
         request = self.list_requests[0]
         del self.list_requests[0]
+        print("Request_Queue: Removed", str(request), "from queue")
         return request
     
     def isEmpty(self):

@@ -43,10 +43,14 @@ class Buffer:
         """
         return len(self.buffer_list) == 0
     
-    def addJob(self, job):
+    def addJob(self, job, token="notSpecial"):
         """
         Add a job to the buffer
         """
+        if token == "special":
+            self.buffer_list.append(job)
+            return 1
+        
         print(str(self), " -> addJob()")
         if self.isFull():
             return -1
@@ -63,7 +67,7 @@ class Buffer:
         for job in self.buffer_list:
             repr += str(job.id) + " "
         if self.buffer_list == []:
-            repr += "Empty"
+            repr += "empty"
         return repr
 
 
@@ -107,12 +111,15 @@ class Core:
                 else:
                     # If buffer is not empty and policy is roundRobin, add end quantum
                     if self.policy == "roundRobin":
-                        # TODO
                         self.idle = False
-                        job.request.time_spent_on_cpu += self.quantum_size
                         self.runningThread = job
-                        if not self.buffer.isEmpty:
-                            event_list.addEvent(event_type=EventType.end_quantum, start_time=sim_time, event_attr={"core_id": self.id})
+                        if(job.request.time_required - job.request.time_spent_on_cpu <= self.quantum_size):
+                            start_time = sim_time + job.request.time_required - job.request.time_spent_on_cpu
+                            event_list.addEvent(event_type=EventType.departure,start_time = start_time, event_attr={"core_id": self.id})
+                        else:
+                            start_time = sim_time + self.quantum_size
+                            job.request.time_spent_on_cpu += self.quantum_size
+                            event_list.addEvent(event_type=EventType.end_quantum, start_time=start_time, event_attr={"core_id": self.id})
                     elif self.policy == "fcfs":
                         self.idle = False
                         self.runningThread = job
@@ -123,10 +130,7 @@ class Core:
         """
         The request is completed and should be departed
         """
-        if self.policy == "fcfs":
-            self.runningThread.request.time_spent_on_cpu = self.runningThread.request.time_required
-        elif self.policy == "roundRobin":
-            print("round robin is todo")    # TODO
+        self.runningThread.request.time_spent_on_cpu = self.runningThread.request.time_required
         thread_list.removeThread(self.runningThread.id)
         self.idle = True
         self.runningThread = None
@@ -147,9 +151,9 @@ class Core:
         Debugging Purpose Only
         Prints the state of a core
         """
-        repr = str("Core: " + "id " + str(self.id) +
-                   ", Policy " + str(self.policy) + ", Quantum Size " + str(self.quantum_size))
-        repr += str(self.buffer)
+        repr = str("Core: " + "id " + str(self.id))
+        #   + ", Policy " + str(self.policy) + ", Quantum Size " + str(self.quantum_size))
+        # repr += ", " + str(self.buffer)
         return repr
 
 
@@ -166,16 +170,16 @@ class CoreHandler:
         """
         It adds the thread to run on a core if its buffer has space otherwise append the thread to pending_threads
         """
-        print("CoreHandler -> getCore()")
         load = []
         for core in self.cores:
             load.append(core.buffer.getBufferLength() + int(not core.isIdle()))
-        print("Load " , load)
+        print("CoreHandler: Load ", load)
         core = self.cores[load.index(min(load))]
         if core.buffer.addJob(thread) == -1:
             print("CoreHandler: added", str(thread), "to pending_threads")
             self.pending_threads.append(thread)
         else:
+            print("CoreHandler: added", str(thread), "to", str(core))
             if core.isIdle():
                 core.checkBuffer(thread_list, event_list, sim_time)
 
@@ -198,6 +202,12 @@ class CoreHandler:
                 if core.isIdle():
                     core.checkBuffer()
     
+    def getUtilization(self):
+        count = 0.0
+        for core in self.cores:
+            count += int(not core.isIdle())
+        return count/len(self.cores)
+
     def __repr__(self):
         """
         Debugging Purpose Only
