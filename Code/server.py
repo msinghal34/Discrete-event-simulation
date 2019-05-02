@@ -101,7 +101,9 @@ class Core:
                 # Found a job to schedule
                 if job.request.timeout + job.request.timestamp < sim_time + self.quantum_size:
                     # Request has timed out
-                    self.timeout(job, thread_list, event_list, sim_time)
+                    self.idle = False
+                    self.runningThread = job
+                    event_list.addEvent(event_type=EventType.timeout, start_time=sim_time, event_attr={"core_id": self.id})
                 else:
                     # If buffer is not empty and policy is roundRobin, add end quantum
                     if self.policy == "roundRobin":
@@ -130,12 +132,14 @@ class Core:
         self.runningThread = None
         self.checkBuffer(thread_list, event_list, sim_time)
 
-    def timeout(self, job, thread_list, event_list, sim_time):
+    def timeout(self, thread_list, event_list, sim_time):
         """
         Only called by checkBuffer if the job has timed out
         The request has timed out and should be counted towards badput
         """
-        print(str(sim_time), str(job), "Timeout", sep=" : ")
+        thread_list.removeThread(self.runningThread.id)
+        self.idle = True
+        self.runningThread = None
         self.checkBuffer(thread_list, event_list, sim_time)
 
     def __repr__(self):
@@ -143,8 +147,8 @@ class Core:
         Debugging Purpose Only
         Prints the state of a core
         """
-        repr = str("Core: " + "ID : " + str(self.id) +
-                   "Policy: " + str(self.policy) + "Quantum Size: " + str(self.quantum_size))
+        repr = str("Core: " + "id " + str(self.id) +
+                   ", Policy " + str(self.policy) + ", Quantum Size " + str(self.quantum_size))
         repr += str(self.buffer)
         return repr
 
@@ -188,6 +192,8 @@ class CoreHandler:
             if core.buffer.addJob(self.pending_threads[0]) == -1:
                 print("Error : allocatePendingThreads should have been called only after departure or timeout")
             else:
+                thread = self.pending_threads[0]
+                print("CoreHandler: removed", str(thread), "from pending_thread")
                 del self.pending_threads[0]
                 if core.isIdle():
                     core.checkBuffer()

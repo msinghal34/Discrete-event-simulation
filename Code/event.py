@@ -7,6 +7,7 @@ class EventType(Enum):
     end_quantum = 2     # Attributes : core_id
     switch_context = 3  # Attributes : core_id
     departure = 4       # Attributes : core_id
+    timeout = 5         # Attributes : core_id
 
 class Event:
     def __init__(self, id, event_type, start_time, attr):

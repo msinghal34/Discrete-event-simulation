@@ -1,7 +1,7 @@
 num_cores: 2
 num_threads: 8
-buffer_capacity: 3
-max_request_queue_length: 5
+buffer_capacity: 2
+max_request_queue_length: 1
 policy: fcfs
 quantum_size: 0.5
 num_users: 10
@@ -23,7 +23,7 @@ context_switch_overhead:  0.02
 think_time_distribution:
   name: deterministic
   params:
-    c: 20.0
+    c: 100.0
 
 # service_time_distribution:
 #   name: exponential

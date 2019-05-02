@@ -92,11 +92,21 @@ class RequestQueue:
         else:
             self.list_requests.append(request)
 
-    def removeFromQueue(self, request):
+    def removeFromQueue(self):
         """
-        Remove a request from Request queue
+        Remove the first request from the queue
         """
-        self.list_requests.remove(request)
+        if self.isEmpty():
+            return -1
+        request = self.list_requests[0]
+        del self.list_requests[0]
+        return request
+    
+    def isEmpty(self):
+        """
+        Returns whether request_queue is empty or not
+        """
+        return self.list_requests == []
 
     def __repr__(self):
         return str("Request Queue with max queue length " + str(self.max_queue_length))

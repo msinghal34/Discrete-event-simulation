@@ -72,23 +72,63 @@ while not (event_list.isEmpty() or request_id > STOPPING_CRITERION):
             queue_response = request_queue.addToQueue(request)
             if queue_response == -1:
                 print(str(sim_time), str(request), "Dropped", sep=" : ")
+        
+                # Adding a create Request event
+                start_time = sim_time + get_random_variate(THINK_TIME_DIST["name"], THINK_TIME_DIST["params"])
+                timeout = get_random_variate(TIMEOUT_DIST["name"], TIMEOUT_DIST["params"])
+                service_time = get_random_variate(SERVICE_TIME_DIST["name"], SERVICE_TIME_DIST["params"])
+                event_list.addEvent(event_type=EventType.create_request, start_time=start_time, event_attr={
+                                "id": request_id, "timeout": timeout, "service_time": service_time})
+                request_id += 1
             else:
                 print(str(sim_time), str(request), "Appended to Request Queue", sep=" : ")
         else:
             core_handler.getCore(response, thread_list, event_list, sim_time)
     
     elif event.event_type == EventType.departure:
-        core_handler.cores[event.attr["core_id"]].departure(
+        core_id = event.attr["core_id"]
+        request = core_handler.cores[core_id].runningThread
+        core_handler.cores[core_id].departure(
             thread_list, event_list, sim_time)
         print(str(sim_time), str(request), "Departed", sep=" : ")
+        
         core_handler.allocatePendingThreads()
+        request = request_queue.removeFromQueue()
+        if not (request == -1):
+            response = thread_list.getThreadToRunOnCpu(request)
+            print(response)
+            core_handler.getCore(response, thread_list, event_list, sim_time)
+
+        # Adding a create Request event
         start_time = sim_time + get_random_variate(THINK_TIME_DIST["name"], THINK_TIME_DIST["params"])
         timeout = get_random_variate(TIMEOUT_DIST["name"], TIMEOUT_DIST["params"])
         service_time = get_random_variate(SERVICE_TIME_DIST["name"], SERVICE_TIME_DIST["params"])
         event_list.addEvent(event_type=EventType.create_request, start_time=start_time, event_attr={
                         "id": request_id, "timeout": timeout, "service_time": service_time})
         request_id += 1
-    
+
+    elif event.event_type == EventType.timeout:
+        core_id = event.attr["core_id"]
+        request = core_handler.cores[core_id].runningThread
+        core_handler.cores[core_id].timeout(
+            thread_list, event_list, sim_time)
+        print(str(sim_time), str(request), "Timeout", sep=" : ")
+
+        core_handler.allocatePendingThreads()
+        request = request_queue.removeFromQueue()
+        if not (request == -1):
+            response = thread_list.getThreadToRunOnCpu(request)
+            print("Shift from request queue to thread", request, response)
+            core_handler.getCore(response, thread_list, event_list, sim_time)
+
+        # Adding a create Request event
+        start_time = sim_time + get_random_variate(THINK_TIME_DIST["name"], THINK_TIME_DIST["params"])
+        timeout = get_random_variate(TIMEOUT_DIST["name"], TIMEOUT_DIST["params"])
+        service_time = get_random_variate(SERVICE_TIME_DIST["name"], SERVICE_TIME_DIST["params"])
+        event_list.addEvent(event_type=EventType.create_request, start_time=start_time, event_attr={
+                        "id": request_id, "timeout": timeout, "service_time": service_time})
+        request_id += 1
+
     elif event.event_type == EventType.end_quantum:
         print(str(sim_time), "Core " + str(event.event_attr["core_id"]), "End of Quantum", sep=" : ")
         event_list.addEvent(event_type=EventType.switch_context, start_time=sim_time+CONTEXT_SWITCH_OVERHEAD, event_attr={"core_id": event.event_attr["core_id"]})
