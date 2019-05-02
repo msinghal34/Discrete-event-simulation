@@ -9,6 +9,8 @@ class Request:
         self.time_spent_on_cpu = time_spent_on_cpu  # Total time spent on cpu so far
         self.priority = priority    # Priority of this request
 
+    def __repr__(self):
+        return str("Request with id " + str(self.id))
 
 class Thread:
     """Abstraction for a Thread """
@@ -20,6 +22,8 @@ class Thread:
         # Has a core been allocated to this thread (it may be in buffer of a core)
         self.core_allocated = False
 
+    def __repr__(self):
+        return str("Thread with id " + str(self.id))
 
 class ThreadList:
     """ An abstraction for the list of threads waiting to get into the core buffer """
@@ -65,6 +69,9 @@ class ThreadList:
                 self.available_threads.append(thread_id)
                 break
 
+    def __repr__(self):
+        return str("Thread List with number of threads " + str(self.max_threads))
+
 
 class RequestQueue:
     """ An abstraction for the queue of Requests waiting to get a thread """
@@ -90,3 +97,6 @@ class RequestQueue:
         Remove a request from Request queue
         """
         self.list_requests.remove(request)
+
+    def __repr__(self):
+        return str("Request Queue with max queue length " + str(self.max_queue_length))

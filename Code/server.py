@@ -1,5 +1,5 @@
 from event import EventType
-
+from policy import *
 
 class Buffer:
     """
@@ -10,6 +10,11 @@ class Buffer:
     def __init__(self, capacity):
         self.capacity = capacity    # Maximum number of threads that buffer can hold
         self.buffer_list = []       # List of threads currently in buffer
+        self.policy_dict = {
+            "fcfs": fcfs,
+            "roundRobin": roundRobin,
+            "priority": priority,
+        }
 
     def getNextJob(self, policy):
         """
@@ -17,7 +22,7 @@ class Buffer:
         """
         if self.buffer_list == []:
             return -1
-        return policy(self.buffer_list)
+        return self.policy_dict[policy](self.buffer_list)
 
     def isFull(self):
         """
@@ -84,7 +89,7 @@ class Core:
         if self.isIdle() == False:
             print("Error : Server should have been idle")
         else:
-            job = self.buffer.getNextJob()
+            job = self.buffer.getNextJob(self.policy)
             if job == -1:
                 print("Buffer is empty")
             else:
@@ -141,19 +146,20 @@ class CoreHandler:
         self.cores = cores      # List of cores in the system which it will be handling
         self.pending_threads = []   # List of threads pending to get a core
 
-    def getCore(self, thread):
+    def getCore(self, thread, thread_list, event_list, sim_time):
         """
         It adds the thread to run on a core if its buffer has space otherwise append the thread to pending_threads
         """
         load = []
         for core in self.cores:
             load.append(core.buffer.getBufferLength())
+        # print(load)
         core = self.cores[load.index(min(load))]
-        if core.buffer.addJob(self.pending_threads[0]) == -1:
+        if core.buffer.addJob(thread) == -1:
             self.pending_threads.append(thread)
         else:
             if core.isIdle():
-                core.checkBuffer()
+                core.checkBuffer(thread_list, event_list, sim_time)
 
     def allocatePendingThreads(self):
         """

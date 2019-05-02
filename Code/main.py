@@ -4,11 +4,13 @@ from policy import *
 from distribution import *
 from server import *
 from thread import *
+from util import *
 
 with open("config.yaml", 'r') as stream:
     try:
         config = yaml.safe_load(stream)
         print(config)
+        printLineBreak()
     except yaml.YAMLError as exc:
         print(exc)
 
@@ -54,15 +56,18 @@ for i in range(NUM_USERS):
 
 # Main loop to process events until it is empty or the number of requests generated exceeds stopping criterion
 while not (event_list.isEmpty() or request_id > STOPPING_CRITERION):
+    printLineBreak()
     event = event_list.getNextEvent()
+    print(event)
     prev_sim_time = sim_time
     sim_time = event.start_time
 
     if event.event_type == EventType.create_request:
-        print(str(sim_time), str(request), "Arrived", sep=" : ")
         request = Request(event.attr["id"],
                           event.attr["timeout"], event.attr["service_time"], event.start_time)
+        print(str(sim_time), str(request), "Arrived", sep=" : ")
         response = thread_list.getThreadToRunOnCpu(request)
+        print(response)
         if response == -1:
             queue_response = request_queue.addToQueue(request)
             if queue_response == -1:
@@ -70,7 +75,7 @@ while not (event_list.isEmpty() or request_id > STOPPING_CRITERION):
             else:
                 print(str(sim_time), str(request), "Appended to Request Queue", sep=" : ")
         else:
-            core_handler.getCore(response)
+            core_handler.getCore(response, thread_list, event_list, sim_time)
     
     elif event.EventType == EventType.departure:
         core_handler.cores[event.attr["core_id"]].departure(

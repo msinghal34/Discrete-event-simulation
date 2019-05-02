@@ -16,6 +16,9 @@ class Event:
         self.start_time = start_time    # time at which to start the event
         # attributes of the event (can be different for each type of event)
         self.attr = attr
+    
+    def __repr__(self):
+        return str("Event : id " + str(self.event_id) + ", event_type " + str(self.event_type) + ", start_time " + str(self.start_time) + ", attr " + str(self.attr))
 
 
 class EventList:
@@ -31,12 +34,14 @@ class EventList:
         """
         Returns the most imminent event from the list
         """
+        print("EventList : getNextEvent() called")
         return self.queue.pop()
 
     def addEvent(self, event_type, start_time, event_attr):
         """
         Add an event to event list (which is a priority queue)
         """
+        print("EventList : Added event with type = " + str(event_type) + " and with start_time = " + str(start_time))
         event = Event(self.counter, event_type, start_time, event_attr)
         self.queue.push(event)
         self.counter += 1
@@ -45,7 +50,7 @@ class EventList:
         """
         Returns whether event list is empty
         """
-        return len(self.queue) == 0
+        return self.queue.len() == 0
 
     def __repr__(self):
         return str(self.counter) + str(self.queue)

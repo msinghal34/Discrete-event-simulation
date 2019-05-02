@@ -22,3 +22,10 @@ class PriorityQueue:
     def pop(self):
         [_, event] = heapq.heappop(self.heap)
         return event
+
+    def len(self):
+        return len(self.heap)
+
+
+def printLineBreak():
+    print("-------------------------------------------------------------------"*2)
