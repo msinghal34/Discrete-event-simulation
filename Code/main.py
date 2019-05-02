@@ -32,12 +32,12 @@ TIMEOUT_DIST = config["timeout_distribution"]
 cores = []  # Cores in the system
 for i in range(NUM_CORES):
     cores.append(Core(i, Buffer(BUFFER_CAPACITY), POLICY, QUANTUM_SIZE))
-coreHandler = CoreHandler(cores)    # Core Handler Instance
+core_handler = CoreHandler(cores)    # Core Handler Instance
 
-EVENT_LIST = EventList()    # An instance of the event list
-THREAD_LIST = ThreadList(NUM_THREADS)    # A Thread List instance
+event_list = EventList()    # An instance of the event list
+thread_list = ThreadList(NUM_THREADS)    # A Thread List instance
 # An instance of Request queue
-REQUEST_QUEUE = RequestQueue(MAX_REQUEST_QUEUE_LENGTH)
+request_queue = RequestQueue(MAX_REQUEST_QUEUE_LENGTH)
 
 # Intialization of Event List
 sim_time = 0.0  # Current Simulation Time
@@ -48,16 +48,50 @@ for i in range(NUM_USERS):
     timeout = get_random_variate(TIMEOUT_DIST["name"], TIMEOUT_DIST["params"])
     service_time = get_random_variate(
         SERVICE_TIME_DIST["name"], SERVICE_TIME_DIST["params"])
-    EVENT_LIST.addEvent(event_type=EventType.create_request, start_time=start_time, event_attr={
+    event_list.addEvent(event_type=EventType.create_request, start_time=start_time, event_attr={
                         "id": request_id, "timeout": timeout, "service_time": service_time})
     request_id += 1
 
 # Main loop to process events until it is empty or the number of requests generated exceeds stopping criterion
-while not (EVENT_LIST.isEmpty() or request_id > STOPPING_CRITERION):
-    event = EVENT_LIST.getNextEvent()
+while not (event_list.isEmpty() or request_id > STOPPING_CRITERION):
+    event = event_list.getNextEvent()
     prev_sim_time = sim_time
     sim_time = event.start_time
 
     if event.event_type == EventType.create_request:
+        print(str(sim_time), str(request), "Arrived", sep=" : ")
         request = Request(event.attr["id"],
                           event.attr["timeout"], event.attr["service_time"], event.start_time)
+        response = thread_list.getThreadToRunOnCpu(request)
+        if response == -1:
+            queue_response = request_queue.addToQueue(request)
+            if queue_response == -1:
+                print(str(sim_time), str(request), "Dropped", sep=" : ")
+            else:
+                print(str(sim_time), str(request), "Appended to Request Queue", sep=" : ")
+        else:
+            core_handler.getCore(response)
+    
+    elif event.EventType == EventType.departure:
+        core_handler.cores[event.attr["core_id"]].departure(
+            thread_list, event_list, sim_time)
+        print(str(sim_time), str(request), "Departed", sep=" : ")
+        core_handler.allocatePendingThreads()
+        start_time = sim_time + get_random_variate(THINK_TIME_DIST["name"], THINK_TIME_DIST["params"])
+        timeout = get_random_variate(TIMEOUT_DIST["name"], TIMEOUT_DIST["params"])
+        service_time = get_random_variate(SERVICE_TIME_DIST["name"], SERVICE_TIME_DIST["params"])
+        event_list.addEvent(event_type=EventType.create_request, start_time=start_time, event_attr={
+                        "id": request_id, "timeout": timeout, "service_time": service_time})
+        request_id += 1
+    
+    elif event.EventType == EventType.end_quantum:
+        print(str(sim_time), "Core " + str(event.event_attr["core_id"]), "End of Quantum", sep=" : ")
+        event_list.addEvent(event_type=EventType.switch_context, start_time=sim_time+CONTEXT_SWITCH_OVERHEAD, event_attr={"core_id": event.event_attr["core_id"]})
+
+    elif event.EventType == EventType.switch_context:
+        # Invariant is that buffer is not empty
+        core = core_handler.cores[event.attr["core_id"]]
+        next_job = core.buffer.getNextJob(core.policy)
+        print(str(sim_time), "Core " + str(event.event_attr["core_id"]), "Context Switched to ", str(next_job), sep=" : ")
+        core.buffer.addJob(core.runningThread)
+        core.runningThread = next_job

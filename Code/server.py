@@ -24,7 +24,19 @@ class Buffer:
         Returns whether the buffer is full or not
         """
         return self.capacity == len(self.buffer_list)
+    
+    def getBufferLength(self):
+        """
+        Returns the length of the buffer list
+        """
+        return len(self.buffer_list)
 
+    def isEmpty(self):
+        """
+        Checks whether buffer is empty or not
+        """
+        return len(self.buffer_list) == 0
+    
     def addJob(self, job):
         """
         Add a job to the buffer
@@ -64,7 +76,29 @@ class Core:
         """
         return self.idle
 
-    def departure(self, thread_list, event_list, sim_time, quantum_size):
+    def checkBuffer(self, thread_list, event_list, sim_time):
+        """
+        Assumption: server is idle
+        """
+        if self.isIdle() == False:
+            print("Error : Server should have been idle")
+        else:
+            job = self.buffer.getNextJob()
+            if job == -1:
+                print("Buffer is empty")
+            else:
+                # Found a job to schedule
+                if job.request.timeout + job.request.timestamp < sim_time + self.quantum_size:
+                    # Request has timed out
+                    self.timeout(thread_list, event_list, sim_time)
+                else:
+                    # If buffer is not empty and policy is add end quantum
+                    if self.policy == "roundRobin":
+                        if not self.buffer.isEmpty:
+                            event_list.addEvent()
+                            
+
+    def departure(self, thread_list, event_list, sim_time):
         """
         The request is completed and should be counted towards goodput
         """
@@ -76,14 +110,14 @@ class Core:
         else:
             self.runningThread = next_job
             if next_job.request.timeout + next_job.request.timestamp > sim_time:
-                self.timeout(thread_list, event_list, sim_time, quantum_size)
+                self.timeout(thread_list, event_list, sim_time, self.quantum_size)
             else:
                 next_job.running = True
                 self.runningThread = next_job
                 event_list.addEvent(
-                    EventType.end_quantum, sim_time+quantum_size, {'core_id': self.id})
+                    EventType.end_quantum, sim_time+self.quantum_size, {'core_id': self.id})
 
-    def timeout(self, thread_list, event_list, sim_time, quantum_size):
+    def timeout(self, thread_list, event_list, sim_time):
         """
         The request has timed out and should be counted towards badput
         """
@@ -94,12 +128,12 @@ class Core:
             self.idle = True
         else:
             if next_job.request.timeout + next_job.request.timestamp > sim_time:
-                self.timeout(thread_list, event_list, sim_time, quantum_size)
+                self.timeout(thread_list, event_list, sim_time, self.quantum_size)
             else:
                 next_job.running = True
                 self.runningThread = next_job
                 event_list.addEvent(
-                    EventType.end_quantum, sim_time+quantum_size, {'core_id': self.id})
+                    EventType.end_quantum, sim_time+self.quantum_size, {'core_id': self.id})
 
     def __repr__(self):
         """
@@ -119,16 +153,38 @@ class CoreHandler:
 
     def __init__(self, cores):
         self.cores = cores      # List of cores in the system which it will be handling
+        self.pending_threads = []   # List of threads pending to get a core
 
-    def getCore(self):
+    def getCore(self, thread):
         """
-        It returns a core (if available) for a thread
+        It adds the thread to run on a core if its buffer has space otherwise append the thread to pending_threads
         """
+        load = []
         for core in self.cores:
-            if (core.buffer.isFull() == False):
-                return core     # Found a core
-        return -1   # No cores are empty
+            load.append(core.buffer.getBufferLength())
+        core = self.cores[load.index(min(load))]
+        if core.buffer.addJob(self.pending_threads[0]) == -1:
+            self.pending_threads.append(thread)
+        else:
+            if core.isIdle():
+                core.checkBuffer()
 
+    def allocatePendingThreads(self):
+        """
+        Called from departure and timeout functions
+        Check all the cores for any empty space in the cores
+        """
+        load = []
+        for core in self.cores:
+            load.append(core.buffer.getBufferLength())
+        core = self.cores[load.index(min(load))]
+        if core.buffer.addJob(self.pending_threads[0]) == -1:
+            print("Error : allocatePendingThreads should have been called only after departure or timeout")
+        else:
+            del self.pending_threads[0]
+            if core.isIdle():
+                core.checkBuffer()
+    
     def __repr__(self):
         """
         Debugging Purpose Only

@@ -6,10 +6,7 @@ class EventType(Enum):
     create_request = 1  # Attributes : id, timeout, service_time
     end_quantum = 2     # Attributes : core_id
     switch_context = 3  # Attributes : core_id
-    departure = 4       # Attributes :
-    timeout = 5
-    drop_request = 6
-
+    departure = 4       # Attributes : core_id
 
 class Event:
     def __init__(self, id, event_type, start_time, attr):
