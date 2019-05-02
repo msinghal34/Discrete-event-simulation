@@ -5,14 +5,14 @@ max_request_queue_length: 5
 policy: fcfs
 quantum_size: 0.5
 num_users: 10
-stopping_criterion: 200
+stopping_criterion: 20
 context_switch_overhead:  0.02
 
-think_time_distribution:
-  name: c+exp
-  params:
-    c: 2.0
-    lambd: 0.5
+# think_time_distribution:
+#   name: c+exp
+#   params:
+#     c: 20.0
+#     lambd: 0.5
 
 # think_time_distribution:
 #   name: uniform
@@ -20,15 +20,15 @@ think_time_distribution:
 #     a: 1.0
 #     b: 2.0
 
-# think_time_distribution:
-#   name: deterministic
-#   params:
-#     c: 2.0
-
-service_time_distribution:
-  name: exponential
+think_time_distribution:
+  name: deterministic
   params:
-    lambd: 1.0
+    c: 20.0
+
+# service_time_distribution:
+#   name: exponential
+#   params:
+#     lambd: 0.1
 
 
 # service_time_distribution:
@@ -37,18 +37,18 @@ service_time_distribution:
 #     a: 2.0
 #     b: 3.0
 
-# service_time_distribution:
-#   name: deterministic
-#   params:
-#     c: 3.0
-
-timeout_distribution:
-  name: c+exp
+service_time_distribution:
+  name: deterministic
   params:
     c: 5.0
-    lambd: 0.5
 
 # timeout_distribution:
-#   name: deterministic
+#   name: c+exp
 #   params:
-#     c: 2.0
+#     c: 5.0
+#     lambd: 0.5
+
+timeout_distribution:
+  name: deterministic
+  params:
+    c: 5.0

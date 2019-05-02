@@ -34,14 +34,14 @@ class EventList:
         """
         Returns the most imminent event from the list
         """
-        print("EventList : getNextEvent() called")
+        print("EventList -> getNextEvent()")
         return self.queue.pop()
-
+        
     def addEvent(self, event_type, start_time, event_attr):
         """
         Add an event to event list (which is a priority queue)
         """
-        print("EventList : Added event with type = " + str(event_type) + " and with start_time = " + str(start_time))
+        print("EventList -> Adding event with type = " + str(event_type) + " and with start_time = " + str(start_time))
         event = Event(self.counter, event_type, start_time, event_attr)
         self.queue.push(event)
         self.counter += 1
@@ -53,4 +53,4 @@ class EventList:
         return self.queue.len() == 0
 
     def __repr__(self):
-        return str(self.counter) + str(self.queue)
+        return str("EventList: " + str(self.queue))

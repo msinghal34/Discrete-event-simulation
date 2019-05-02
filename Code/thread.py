@@ -23,7 +23,7 @@ class Thread:
         self.core_allocated = False
 
     def __repr__(self):
-        return str("Thread with id " + str(self.id))
+        return str("Thread: id " + str(self.id))
 
 class ThreadList:
     """ An abstraction for the list of threads waiting to get into the core buffer """
@@ -33,7 +33,7 @@ class ThreadList:
         # List of threads which are currently in use by some request
         self.list_of_threads_in_use = []
         # Thread IDs available for new requests
-        self.available_threads = list(range(256))
+        self.available_threads = list(range(max_threads))
 
     def isThreadAvailableForARequest(self):
         """

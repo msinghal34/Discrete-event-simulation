@@ -33,7 +33,7 @@ TIMEOUT_DIST = config["timeout_distribution"]
 
 cores = []  # Cores in the system
 for i in range(NUM_CORES):
-    cores.append(Core(i, Buffer(BUFFER_CAPACITY), POLICY, QUANTUM_SIZE))
+    cores.append(Core(i, Buffer(i, BUFFER_CAPACITY), POLICY, QUANTUM_SIZE))
 core_handler = CoreHandler(cores)    # Core Handler Instance
 
 event_list = EventList()    # An instance of the event list
@@ -77,7 +77,7 @@ while not (event_list.isEmpty() or request_id > STOPPING_CRITERION):
         else:
             core_handler.getCore(response, thread_list, event_list, sim_time)
     
-    elif event.EventType == EventType.departure:
+    elif event.event_type == EventType.departure:
         core_handler.cores[event.attr["core_id"]].departure(
             thread_list, event_list, sim_time)
         print(str(sim_time), str(request), "Departed", sep=" : ")
@@ -89,11 +89,11 @@ while not (event_list.isEmpty() or request_id > STOPPING_CRITERION):
                         "id": request_id, "timeout": timeout, "service_time": service_time})
         request_id += 1
     
-    elif event.EventType == EventType.end_quantum:
+    elif event.event_type == EventType.end_quantum:
         print(str(sim_time), "Core " + str(event.event_attr["core_id"]), "End of Quantum", sep=" : ")
         event_list.addEvent(event_type=EventType.switch_context, start_time=sim_time+CONTEXT_SWITCH_OVERHEAD, event_attr={"core_id": event.event_attr["core_id"]})
 
-    elif event.EventType == EventType.switch_context:
+    elif event.event_type == EventType.switch_context:
         # Invariant is that buffer is not empty
         core = core_handler.cores[event.attr["core_id"]]
         next_job = core.buffer.getNextJob(core.policy)
