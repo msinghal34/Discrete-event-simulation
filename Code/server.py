@@ -79,6 +79,7 @@ class Core:
     def checkBuffer(self, thread_list, event_list, sim_time):
         """
         Assumption: server is idle
+        Use: Server is idle, is there something in buffer to utilize CPU   
         """
         if self.isIdle() == False:
             print("Error : Server should have been idle")
@@ -90,50 +91,35 @@ class Core:
                 # Found a job to schedule
                 if job.request.timeout + job.request.timestamp < sim_time + self.quantum_size:
                     # Request has timed out
-                    self.timeout(thread_list, event_list, sim_time)
+                    self.timeout(job, thread_list, event_list, sim_time)
                 else:
-                    # If buffer is not empty and policy is add end quantum
+                    self.idle = False
+                    job.request.time_spent_on_cpu += self.quantum_size
+                    self.runningThread = job
+                    # If buffer is not empty and policy is roundRobin, add end quantum
                     if self.policy == "roundRobin":
                         if not self.buffer.isEmpty:
-                            event_list.addEvent()
-                            
+                            event_list.addEvent(event_type=EventType.end_quantum, start_time=sim_time, event_attr={"core_id": self.id})
+                    # else FCFS
+
 
     def departure(self, thread_list, event_list, sim_time):
         """
-        The request is completed and should be counted towards goodput
+        The request is completed and should be departed
         """
         thread_list.removeThread(self.runningThread.thread_id)
+        self.idle = True
         self.runningThread = None
-        next_job = self.buffer.getNextJob(self.policy)
-        if next_job == -1:  # Empty Buffer
-            self.idle = True
-        else:
-            self.runningThread = next_job
-            if next_job.request.timeout + next_job.request.timestamp > sim_time:
-                self.timeout(thread_list, event_list, sim_time, self.quantum_size)
-            else:
-                next_job.running = True
-                self.runningThread = next_job
-                event_list.addEvent(
-                    EventType.end_quantum, sim_time+self.quantum_size, {'core_id': self.id})
+        self.checkBuffer(thread_list, event_list, sim_time)
 
-    def timeout(self, thread_list, event_list, sim_time):
+    def timeout(self, job, thread_list, event_list, sim_time):
         """
+        Only called by checkBuffer if the job has timed out
         The request has timed out and should be counted towards badput
         """
         thread_list.removeThread(self.runningThread.thread_id)
-        self.runningThread = None
-        next_job = self.buffer.getNextJob(self.policy)
-        if next_job == -1:  # Empty Buffer
-            self.idle = True
-        else:
-            if next_job.request.timeout + next_job.request.timestamp > sim_time:
-                self.timeout(thread_list, event_list, sim_time, self.quantum_size)
-            else:
-                next_job.running = True
-                self.runningThread = next_job
-                event_list.addEvent(
-                    EventType.end_quantum, sim_time+self.quantum_size, {'core_id': self.id})
+        print(str(sim_time), str(job), "Timeout", sep=" : ")
+        self.checkBuffer(thread_list, event_list, sim_time)
 
     def __repr__(self):
         """
