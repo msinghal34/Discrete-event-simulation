@@ -72,13 +72,14 @@ for line in f:
 response_time_list = [sum(item)/len(item) for item in response_time_list]
 utilization_list = [item[1] for item in utilization_list]
 
+print("Time", current_time)
 print("Response Time", response_time_list)
 print("Utilization", utilization_list)
 
-goodput_list = [x/y for x, y in zip(goodput_list, num_requests)]
-badput_list = [x/y for x, y in zip(badput_list, num_requests)]
-drop_list = [x/y for x, y in zip(drop_list, num_requests)]
-timeout_list = [x/y for x, y in zip(timeout_list, num_requests)]
+# goodput_list = [x for x in (goodput_list, num_requests)]
+# badput_list = [x/y for x, y in zip(badput_list, num_requests)]
+# drop_list = [x/y for x, y in zip(drop_list, num_requests)]
+# timeout_list = [x/y for x, y in zip(timeout_list, num_requests)]
 context_switch_list = [x/y for x, y in zip(context_switch_list, num_requests)]
 
 print("Goodput", goodput_list)
