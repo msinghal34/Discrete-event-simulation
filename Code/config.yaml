@@ -1,18 +1,16 @@
 num_runs: 2
-num_cores: 4
-num_threads: 6
+num_cores: 2
+num_threads: 5
 # verbose: 0
 verbose: 1
-buffer_capacity: 2000
-max_request_queue_length: 1600
+max_request_queue_length: 2
 policy: roundRobin
 # policy: fcfs
-quantum_size: 5
-num_users: 1600
+quantum_size: 1
+num_users: 8
 # Stopping criterion is the number of requests to generate (need not finish)
-stopping_criterion: 25000 
-context_switch_overhead:  0.02
-
+stopping_criterion: 12
+context_switch_overhead:  0.2
 
 # think_time_distribution:
 #   name: c+exp
@@ -23,13 +21,13 @@ context_switch_overhead:  0.02
 # think_time_distribution:
 #   name: uniform
 #   params:
-#     a: 1.0
-#     b: 2.0
+#     a: 100.0
+#     b: 200.0
 
 think_time_distribution:
   name: deterministic
   params:
-    c: 6000.0
+    c: 100.0
 
 # service_time_distribution:
 #   name: exponential
@@ -46,7 +44,7 @@ think_time_distribution:
 service_time_distribution:
   name: deterministic
   params:
-    c: 10.0
+    c: 6.0
 
 # timeout_distribution:
 #   name: c+exp
@@ -57,4 +55,4 @@ service_time_distribution:
 timeout_distribution:
   name: deterministic
   params:
-    c: 200.0
+    c: 50.0

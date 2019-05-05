@@ -1,13 +1,12 @@
 class Request:
     """An abstraction for a Request"""
 
-    def __init__(self, id, timeout, time_required, timestamp, time_spent_on_cpu=0, priority=0):
+    def __init__(self, id, timeout, time_required, timestamp):
         self.id = id    # Request ID
         self.timeout = timeout  # Time to wait before timeout
         self.time_required = time_required  # Time required to complete this job
         self.timestamp = timestamp  # Timestamp when the request was created
-        self.time_spent_on_cpu = time_spent_on_cpu  # Total time spent on cpu so far
-        self.priority = priority    # Priority of this request
+        self.time_spent_on_cpu = 0  # Total time spent on cpu so far
 
     def __repr__(self):
         return str("Request id " + str(self.id))
@@ -18,9 +17,6 @@ class Thread:
     def __init__(self, request, id):
         self.request = request  # Which request is holding this thread
         self.id = id    # Thread ID
-        self.running = False    # Whether this thread is currently running on a core
-        # Has a core been allocated to this thread (it may be in buffer of a core)
-        self.core_allocated = False
 
     def __repr__(self):
         return str("Thread: id " + str(self.id))

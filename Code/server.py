@@ -1,36 +1,26 @@
 from event import EventType
-from policy import *
 
 class Buffer:
     """
     An abstraction of the buffer of a core
-    It stores a list of jobs and it has a specified maximum capacity
+    It stores a list of jobs
     """
 
-    def __init__(self, id, capacity):
+    def __init__(self, id):
         self.id = id
-        self.capacity = capacity    # Maximum number of threads that buffer can hold
         self.buffer_list = []       # List of threads currently in buffer
-        self.policy_dict = {
-            "fcfs": fcfs,
-            "roundRobin": roundRobin,
-            "priority": priority,
-        }
 
-    def getNextJob(self, policy):
+    def getNextJob(self):
         """
-        Return a job from the buffer according to the given policy
+        Return the first job from the buffer
         """
         if self.buffer_list == []:
             return -1
-        return self.policy_dict[policy](self.buffer_list)
+        else:
+            temp = self.buffer_list[0]
+            del self.buffer_list[0]
+            return temp
 
-    def isFull(self):
-        """
-        Returns whether the buffer is full or not
-        """
-        return self.capacity == len(self.buffer_list)
-    
     def getBufferLength(self):
         """
         Returns the length of the buffer list
@@ -43,27 +33,20 @@ class Buffer:
         """
         return len(self.buffer_list) == 0
     
-    def addJob(self, job, token="notSpecial"):
+    def addJob(self, job):
         """
         Add a job to the buffer
         """
-        if token == "special":
-            self.buffer_list.append(job)
-            return 1
-        
-        print(str(self), " -> addJob()")
-        if self.isFull():
-            return -1
         self.buffer_list.append(job)
         return 1
-
+    
     def __repr__(self):
         """
         For Debugging Purpose Only
         Prints the state of buffer
         """
 
-        repr = str("Buffer: Capacity " + str(self.capacity) + ", buffer_list ")
+        repr = str("Buffer: buffer_list ")
         for job in self.buffer_list:
             repr += str(job.id) + " "
         if self.buffer_list == []:
@@ -95,32 +78,29 @@ class Core:
         Assumption: server is idle
         Use: Server is idle, is there something in buffer to utilize CPU   
         """
-        if self.isIdle() == False:
+        if self.idle == False:
             print("Error : Server should have been idle")
         else:
-            job = self.buffer.getNextJob(self.policy)
+            job = self.buffer.getNextJob()
             if job == -1:
                 print(str(self) + " says Buffer is empty")
-            else:
-                # Found a job to schedule
-                if job.request.timeout + job.request.timestamp < sim_time + self.quantum_size:
-                    # Request has timed out
-                    self.idle = False
-                    self.runningThread = job
+            else:   # Found a job to schedule
+                if job.request.timeout + job.request.timestamp < sim_time + self.quantum_size:  # Add timeout event
+                    self.idle = False   # For the purpose of timeout functionality, it is false
+                    self.runningThread = job    # But it won't run on CPU since start_time is sim_time
                     event_list.addEvent(event_type=EventType.timeout, start_time=sim_time, event_attr={"core_id": self.id})
-                else:
-                    # If buffer is not empty and policy is roundRobin, add end quantum
+                else:   # If buffer is not empty and policy is roundRobin, add end quantum
                     if self.policy == "roundRobin":
                         self.idle = False
                         self.runningThread = job
-                        if(job.request.time_required - job.request.time_spent_on_cpu <= self.quantum_size):
+                        if (job.request.time_required - job.request.time_spent_on_cpu <= self.quantum_size):    # Add departure event
                             start_time = sim_time + job.request.time_required - job.request.time_spent_on_cpu
                             event_list.addEvent(event_type=EventType.departure,start_time = start_time, event_attr={"core_id": self.id})
-                        else:
+                        else:   # Add end quantum event
                             start_time = sim_time + self.quantum_size
                             job.request.time_spent_on_cpu += self.quantum_size
                             event_list.addEvent(event_type=EventType.end_quantum, start_time=start_time, event_attr={"core_id": self.id})
-                    elif self.policy == "fcfs":
+                    elif self.policy == "fcfs":     # Add departure event
                         self.idle = False
                         self.runningThread = job
                         start_time = sim_time + self.runningThread.request.time_required
@@ -151,10 +131,7 @@ class Core:
         Debugging Purpose Only
         Prints the state of a core
         """
-        repr = str("Core: " + "id " + str(self.id))
-        #   + ", Policy " + str(self.policy) + ", Quantum Size " + str(self.quantum_size))
-        # repr += ", " + str(self.buffer)
-        return repr
+        return str("Core: " + "id " + str(self.id))
 
 
 class CoreHandler:
@@ -164,43 +141,19 @@ class CoreHandler:
 
     def __init__(self, cores):
         self.cores = cores      # List of cores in the system which it will be handling
-        self.pending_threads = []   # List of threads pending to get a core
 
     def getCore(self, thread, thread_list, event_list, sim_time):
         """
-        It adds the thread to run on a core if its buffer has space otherwise append the thread to pending_threads
+        It adds the thread to run on a core with lowest load
         """
         load = []
         for core in self.cores:
             load.append(core.buffer.getBufferLength() + int(not core.isIdle()))
-        print("CoreHandler: Load ", load)
         core = self.cores[load.index(min(load))]
-        if core.buffer.addJob(thread) == -1:
-            print("CoreHandler: added", str(thread), "to pending_threads")
-            self.pending_threads.append(thread)
-        else:
-            print("CoreHandler: added", str(thread), "to", str(core))
-            if core.isIdle():
-                core.checkBuffer(thread_list, event_list, sim_time)
-
-    def allocatePendingThreads(self):
-        """
-        Called from departure and timeout functions
-        Check all the cores for any empty space in the cores
-        """
-        if not (self.pending_threads == []):
-            load = []
-            for core in self.cores:
-                load.append(core.buffer.getBufferLength())
-            core = self.cores[load.index(min(load))]
-            if core.buffer.addJob(self.pending_threads[0]) == -1:
-                print("Error : allocatePendingThreads should have been called only after departure or timeout")
-            else:
-                thread = self.pending_threads[0]
-                print("CoreHandler: removed", str(thread), "from pending_thread")
-                del self.pending_threads[0]
-                if core.isIdle():
-                    core.checkBuffer()
+        print("CoreHandler: added", str(thread), "to", str(core))
+        core.buffer.addJob(thread)
+        if core.isIdle():
+            core.checkBuffer(thread_list, event_list, sim_time)
     
     def getUtilization(self):
         count = 0.0

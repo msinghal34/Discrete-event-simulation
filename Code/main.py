@@ -2,12 +2,11 @@ import sys
 import os
 import yaml
 
-from event import *
-from policy import *
-from distribution import *
+from event import Event, EventList, EventType
+from distribution import get_random_variate
 from server import *
-from thread import *
-from util import *
+from thread import Request, Thread, ThreadList, RequestQueue
+from util import printLineBreak
 
 with open("config.yaml", 'r') as stream:
     try:
@@ -24,10 +23,9 @@ if config["verbose"] == 0:
 NUM_RUNS = config["num_runs"]       # Number of runs
 NUM_CORES = config["num_cores"]     # Number of cores
 NUM_THREADS = config["num_threads"]    # Number of threads in the system
-BUFFER_CAPACITY = config["buffer_capacity"]     # Buffer Size
 # Max length of the Request queue
 MAX_REQUEST_QUEUE_LENGTH = config["max_request_queue_length"]
-POLICY = config["policy"]   # Scheduling policy for picking requests
+POLICY = config["policy"]   # Scheduling policy for picking requests from buffer
 # Quantum size to run a process before context switch
 QUANTUM_SIZE = config["quantum_size"]
 NUM_USERS = config["num_users"]     # Num of users at the client station
@@ -42,21 +40,17 @@ TIMEOUT_DIST = config["timeout_distribution"]
 # List of sentences to put in file used for calculating metrics
 info_list = []
 
-def info(object):
-    if type(object) == type(Thread):  # Request
-        x = "\t" + str(object.request.id) + "\t" + str(object.request.timestamp)
-        return x
-    else:
-        return "\t" + str(object.id)
-
 # Main loop to process events until the number of requests generated exceeds stopping criterion
 for z in range(NUM_RUNS):
-    info_list.append(str("RUN" + "\t" + str(z)))
+    info_list.append(str("RUN\t" + str(z)))
+    print("---------------------------------------------------------------------"*2)
+    print("------------------------------ RUN" + "\t" + str(z) + "----------------------------------")
+    print("---------------------------------------------------------------------"*2)
     
     # Init of each run
     cores = []  # Cores in the system
     for i in range(NUM_CORES):
-        cores.append(Core(i, Buffer(i, BUFFER_CAPACITY), POLICY, QUANTUM_SIZE))
+        cores.append(Core(i, Buffer(i), POLICY, QUANTUM_SIZE))
     core_handler = CoreHandler(cores)    # Core Handler Instance
 
     event_list = EventList()    # An instance of the event list
@@ -66,6 +60,7 @@ for z in range(NUM_RUNS):
 
     sim_time = 0.0  # Current Simulation Time
     request_id = 0
+    num_serviced = 0    # NUmber of requests dropped or timed out or departed
     for i in range(NUM_USERS):
         # Intialization of Event List
         start_time = sim_time + \
@@ -78,16 +73,14 @@ for z in range(NUM_RUNS):
         request_id += 1
 
     # Main loop for each run
-    while request_id <= STOPPING_CRITERION:
+    while num_serviced < STOPPING_CRITERION:
         printLineBreak()
         event = event_list.getNextEvent()
         print(event)
         prev_sim_time = sim_time
         sim_time = event.start_time
 
-        info_list.append(str("TIME" + "\t" + str(sim_time)))
-
-        info_list.append(str("UTILIZATION" + "\t" + str(core_handler.getUtilization())))
+        info_list.append(str("TIME" + "\t" + str(sim_time) + "\t" + str(core_handler.getUtilization())))
 
         if event.event_type == EventType.create_request:
             request = Request(event.attr["id"],
@@ -97,8 +90,9 @@ for z in range(NUM_RUNS):
             if response == -1:
                 queue_response = request_queue.addToQueue(request)
                 if queue_response == -1:
+                    num_serviced += 1
                     print(str(sim_time), str(request), "Dropped", sep=" : ")
-                
+                    
                     info_list.append(str(
                         "DROP" + "\t" + str(request.id) + "\t" + str(request.timestamp)))
             
@@ -110,9 +104,11 @@ for z in range(NUM_RUNS):
                                     "id": request_id, "timeout": timeout, "service_time": service_time})
                     request_id += 1
             else:
+                # Providing space in core buffer to this request (which got thread)
                 core_handler.getCore(response, thread_list, event_list, sim_time)
         
         elif event.event_type == EventType.departure:
+            num_serviced += 1
             core_id = event.attr["core_id"]
             request = core_handler.cores[core_id].runningThread
             core_handler.cores[core_id].departure(thread_list, event_list, sim_time)
@@ -121,7 +117,6 @@ for z in range(NUM_RUNS):
             info_list.append(str("DEPART" + "\t" +
                                 str(request.request.id) + "\t" + str(request.request.timestamp)))
 
-            core_handler.allocatePendingThreads()
             request = request_queue.removeFromQueue()
             if not (request == -1):
                 response = thread_list.getThreadToRunOnCpu(request)
@@ -137,16 +132,13 @@ for z in range(NUM_RUNS):
             request_id += 1
 
         elif event.event_type == EventType.timeout:
+            num_serviced += 1
             core_id = event.attr["core_id"]
             request = core_handler.cores[core_id].runningThread
             core_handler.cores[core_id].timeout(
                 thread_list, event_list, sim_time)
             print(str(sim_time), str(request), "Timeout", sep=" : ")
-
-            info_list.append(str("TIMEOUT" + "\t" +
-                                str(request.request.id) + "\t" + str(request.request.timestamp)))
-
-            core_handler.allocatePendingThreads()
+            info_list.append(str("TIMEOUT" + "\t" + str(request.request.id) + "\t" + str(request.request.timestamp)))
             request = request_queue.removeFromQueue()
             if not (request == -1):
                 response = thread_list.getThreadToRunOnCpu(request)
@@ -174,10 +166,8 @@ for z in range(NUM_RUNS):
             # Invariant is that buffer is not empty
             core = core_handler.cores[event.attr["core_id"]]
             print(str(sim_time), str(core), str(core.runningThread), "Context Switched ", sep=" : ")
-
             info_list.append(str("CONTEXT" + "\t" + str(core.id)))
-
-            core.buffer.addJob(core.runningThread, "special")
+            core.buffer.addJob(core.runningThread)
             core.runningThread = None
             core.idle = True
             core.checkBuffer(thread_list, event_list, sim_time)
