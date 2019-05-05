@@ -10,7 +10,7 @@ response_time_list = []		# List of list of response time of each request in each
 transient_time_list = []	# List of transient time for each run
 time_list = [] 				# List of total time for each run including transient time
 
-exclusion = 10 				# Number of lines to exclude
+exclusion = int(sys.argv[1]) # Number of lines to exclude
 
 previous_time = 0.0			# Previous time including transient time
 current_time = 0.0			# Current time including transient time
@@ -64,6 +64,7 @@ for line in f:
 		print("Wrong Token Found", token)
 
 del time_list[0]
+time_list.append(current_time)
 # Processing response_time & utilization
 response_time_list = [sum(item)/len(item) for item in response_time_list]
 utilization_list = [sum(item)/(current_time-transient_time) for item in utilization_list]

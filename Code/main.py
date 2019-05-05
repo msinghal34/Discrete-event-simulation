@@ -16,10 +16,6 @@ with open("config.yaml", 'r') as stream:
     except yaml.YAMLError as exc:
         print(exc)
 
-if config["verbose"] == 0:
-    # Block all terminal prints
-    sys.stdout = open(os.devnull, 'w')
-
 NUM_RUNS = config["num_runs"]       # Number of runs
 NUM_CORES = config["num_cores"]     # Number of cores
 NUM_THREADS = config["num_threads"]    # Number of threads in the system
@@ -44,7 +40,7 @@ info_list = []
 for z in range(NUM_RUNS):
     info_list.append(str("RUN\t" + str(z)))
     print("---------------------------------------------------------------------"*2)
-    print("------------------------------ RUN" + "\t" + str(z) + "----------------------------------")
+    print("------------------------------ RUN " + str(z) + " ----------------------------------")
     print("---------------------------------------------------------------------"*2)
     
     # Init of each run
