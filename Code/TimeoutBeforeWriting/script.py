@@ -84,7 +84,7 @@ def script(info_list, exclusion):
 	num_users = [sum(x)/y for x, y in zip(num_users, time_list)]
 
 	context_switch_list = [x/(y+z) for x, y, z in zip(context_switch_list, goodput_list, timeout_list)]
-	drop_list = [x/(x+y+z) for x, y, z in zip(drop_list, goodput_list, timeout_list)]
+	drop_list = [x/y for x, y in zip(drop_list, time_list)]
 	goodput_list = [x/y for x, y in zip(goodput_list, time_list)]
 	timeout_list = [x/y for x, y in zip(timeout_list, time_list)]
 	throughput_list = [x+y for x, y in zip(goodput_list, timeout_list)]

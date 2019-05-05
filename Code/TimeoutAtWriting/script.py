@@ -1,5 +1,5 @@
 def script(info_list, exclusion):
-	# Excluding transient phase
+	# Excluding transient phase and only before the point of printing
 	drop_list = []				# List of number of drops in each run
 	goodput_list = []			# List of number of goodputs in each run 
 	timeout_list = []			# List of number of timeouts in each run
@@ -84,7 +84,7 @@ def script(info_list, exclusion):
 	num_users = [sum(x)/y for x, y in zip(num_users, time_list)]
 
 	context_switch_list = [x/(y+z) for x, y, z in zip(context_switch_list, goodput_list, timeout_list)]
-	drop_list = [x/(x+y+z) for x, y, z in zip(drop_list, goodput_list, timeout_list)]
+	drop_list = [x/y for x, y in zip(drop_list, time_list)]
 	goodput_list = [x/y for x, y in zip(goodput_list, time_list)]
 	timeout_list = [x/y for x, y in zip(timeout_list, time_list)]
 	throughput_list = [x+y for x, y in zip(goodput_list, timeout_list)]

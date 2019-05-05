@@ -52,7 +52,7 @@ for z in range(NUM_RUNS):
 
     sim_time = 0.0  # Current Simulation Time
     request_id = 0
-    num_serviced = 0    # NUmber of requests dropped or timed out or departed
+    num_serviced = 0    # Number of requests dropped or timed out or departed
     for i in range(NUM_USERS):
         # Intialization of Event List
         start_time = sim_time + \
@@ -166,5 +166,5 @@ if len(sys.argv) == 2:
 
 print("Main time", time.time()-t)
 t = time.time()
-script(info_list)
+script(info_list, STOPPING_CRITERION/2)
 print("Script time", time.time()-t)
