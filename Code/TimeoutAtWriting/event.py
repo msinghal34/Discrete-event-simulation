@@ -11,11 +11,9 @@ class EventType(Enum):
 class Event:
     def __init__(self, id, event_type, start_time, attr):
         self.event_id = id              # Event ID
-        # type of the event (1..6) using eventType class
-        self.event_type = event_type
+        self.event_type = event_type    # type of the event (1-4) using eventType class
         self.start_time = start_time    # time at which to start the event
-        # attributes of the event (can be different for each type of event)
-        self.attr = attr
+        self.attr = attr                # attributes of the event (can be different for each type of event)
     
     def __repr__(self):
         return str("Event : id " + str(self.event_id) + ", event_type " + str(self.event_type) + ", start_time " + str(self.start_time) + ", attr " + str(self.attr))
@@ -34,14 +32,12 @@ class EventList:
         """
         Returns the most imminent event from the list
         """
-
         return self.queue.pop()
         
     def addEvent(self, event_type, start_time, event_attr):
         """
         Add an event to event list (which is a priority queue)
         """
-
         event = Event(self.counter, event_type, start_time, event_attr)
         self.queue.push(event)
         self.counter += 1

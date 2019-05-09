@@ -1,4 +1,6 @@
-def script(info_list, exclusion):
+import statistics
+
+def script(info_list, exclusion, result_file):
 	# Excluding transient phase and only before the point of printing
 	drop_list = []				# List of number of drops in each run
 	goodput_list = []			# List of number of goodputs in each run 
@@ -19,7 +21,7 @@ def script(info_list, exclusion):
 		index += 1
 		try:
 			return info_list[index]
-		except Exception as e:
+		except Exception as _:
 			return "ERROR\tERROR"
 
 	while True:
@@ -92,17 +94,6 @@ def script(info_list, exclusion):
 	def mean(list_):
 		return sum(list_)/len(list_)
 
-	print("###################################### Statistics ######################################")
-	print("Observation time\t\t\t : ", time_list)
-	print("Avg. drop rate\t\t\t\t : ", drop_list)
-	print("Avg. goodput\t\t\t\t : ", goodput_list)
-	print("Avg. badput\t\t\t\t : ", timeout_list)
-	print("Avg. throughput\t\t\t\t : ", throughput_list)
-	print("Avg. no. of context switch per request\t : ", context_switch_list)
-	print("Avg. utilization\t\t\t : ", utilization_list)
-	print("Avg. response time\t\t\t : ", response_time_list)
-	print("Avg. no. of users in system\t\t : ", num_users)
-
 	print("###################################### Averages ######################################")
 	print("Observation time\t\t\t : ", mean(time_list), "in ms")
 	print("Avg. drop rate\t\t\t\t : ", mean(drop_list), "reqs per ms")
@@ -114,3 +105,9 @@ def script(info_list, exclusion):
 	print("Avg. response time\t\t\t : ", mean(response_time_list), "in ms")
 	print("Avg. no. of users in system\t\t : ", mean(num_users), "number")
 	print("######################################################################################")
+	file = open(result_file, "a")
+	stats = [mean(response_time_list), statistics.stdev(response_time_list), mean(utilization_list), mean
+	(context_switch_list), mean(goodput_list), mean(timeout_list), mean(throughput_list), mean(drop_list)]
+	file.write(' '.join([str(item) for item in stats]))
+	file.write("\n")
+	file.close()
