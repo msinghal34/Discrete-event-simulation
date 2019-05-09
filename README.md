@@ -37,8 +37,8 @@ If you get environment error, then use ```pip3 install pyyaml --user``` and simi
 		- Run ```python3 overall_script.py``` (You may want to change the number of users in the array users in overall_script.py). It will take around 2 minutes to run and will save all plots in folder Results
 
 ## Few Plots
-![Goodput for timeout at writing](Code/TimeoutAtWriting/Results/Goodput.png)
-![Goodput for timeout before writing](Code/TimeoutBeforeWriting/Results/Goodput.png)
+![Throughput](Code/TimeoutAtWriting/Results/Throughput.png)
+![Utilization](Code/TimeoutAtWriting/Results/Utilisation.png)
 
 ## TODO
 1. Use Welch’s procedure to discard transient phase instead of current ad-hoc choice.
